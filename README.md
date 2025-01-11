@@ -59,7 +59,7 @@ dependencies:
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/run_together.git
+git clone https://github.com/DroneCodes/run_together.git
 cd run_together
 ```
 
