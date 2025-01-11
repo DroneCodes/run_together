@@ -1,0 +1,14 @@
+flutter_native_splash:
+  color: "#FFFFFF"  # or any background color you want
+  image: assets/exercise.png
+  # For dark mode (optional)
+  color_dark: "#000000"
+  image_dark: assets/exercise.png
+
+  android_12:
+    image: assets/exercise.png
+    icon_background_color: "#FFFFFF"
+    image_dark: assets/exercise.png
+    icon_background_color_dark: "#000000"
+
+  web: false

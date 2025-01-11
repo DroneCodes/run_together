@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "248024044480",
+    "project_id": "run-together-fisayoapps-14",
+    "storage_bucket": "run-together-fisayoapps-14.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:248024044480:android:93860068ba44066d6b2e25",
+        "android_client_info": {
+          "package_name": "com.fisayoapps.runtogether"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCDh5KfTv7emLTU2OG7Fb07GMLyvP8t7Ls"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
