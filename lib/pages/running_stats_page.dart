@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:run_together/pages/widgets/pace_unit_toggle.dart';
 
 import '../models/running_activity.dart';
 import '../providers/running_provider.dart';
@@ -47,7 +48,7 @@ class RunningStatsPage extends ConsumerWidget {
               0, (sum, activity) => sum + activity.distance);
           final totalDuration = activities.fold<Duration>(
               Duration.zero, (sum, activity) => sum + activity.duration);
-          final averagePace = totalDuration.inSeconds / (totalDistance / 1000);
+          final averagePace = totalDuration.inSeconds / (totalDistance * 0.621371 / 1000);
 
           return ListView(
             padding: const EdgeInsets.all(24),
@@ -55,8 +56,8 @@ class RunningStatsPage extends ConsumerWidget {
               Text(
                 'Overview',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 16),
               Row(
@@ -64,7 +65,7 @@ class RunningStatsPage extends ConsumerWidget {
                   Expanded(
                     child: _StatCard(
                       title: 'Total Distance',
-                      value: '${(totalDistance / 1000).toStringAsFixed(2)} km',
+                      value: '${(totalDistance * 0.000621371).toStringAsFixed(2)} miles',
                       icon: Icons.straighten,
                       color: Theme.of(context).primaryColor,
                     ),
@@ -83,7 +84,7 @@ class RunningStatsPage extends ConsumerWidget {
               const SizedBox(height: 16),
               _StatCard(
                 title: 'Average Pace',
-                value: '${(averagePace / 60).toStringAsFixed(2)} min/km',
+                value: '${(averagePace / 60).toStringAsFixed(2)} min/mile',
                 icon: Icons.speed,
                 color: Theme.of(context).colorScheme.tertiary,
               ),
@@ -91,8 +92,8 @@ class RunningStatsPage extends ConsumerWidget {
               Text(
                 'Weekly Progress',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 16),
               SizedBox(
@@ -143,7 +144,7 @@ class RunningStatsPage extends ConsumerWidget {
                               interval: 2,
                               getTitlesWidget: (value, meta) {
                                 return Text(
-                                  '${value.toInt()} km',
+                                  '${(value * 0.621371).toStringAsFixed(2)} miles',
                                   style: TextStyle(
                                     color: Theme.of(context).hintColor,
                                     fontSize: 12,
@@ -176,11 +177,11 @@ class RunningStatsPage extends ConsumerWidget {
                           LineChartBarData(
                             spots: weeklyData.entries
                                 .map((e) => FlSpot(
-                                    weeklyData.keys
-                                        .toList()
-                                        .indexOf(e.key)
-                                        .toDouble(),
-                                    e.value))
+                                weeklyData.keys
+                                    .toList()
+                                    .indexOf(e.key)
+                                    .toDouble(),
+                                e.value * 0.621371))
                                 .toList(),
                             isCurved: true,
                             color: Theme.of(context).primaryColor,
@@ -215,14 +216,14 @@ class RunningStatsPage extends ConsumerWidget {
               Text(
                 'Recent Activities',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 16),
               ...activities.take(5).map((activity) => _RecentActivityCard(
-                    activity: activity,
-                    onTap: () => _showActivityDetails(context, activity),
-                  )),
+                activity: activity,
+                onTap: () => _showActivityDetails(context, activity),
+              )),
             ],
           );
         },
@@ -247,8 +248,8 @@ class RunningStatsPage extends ConsumerWidget {
             Text(
               'Activity Details',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 24),
             _DetailRow(
@@ -260,7 +261,7 @@ class RunningStatsPage extends ConsumerWidget {
             _DetailRow(
               icon: Icons.straighten,
               label: 'Distance',
-              value: '${(activity.distance / 1000).toStringAsFixed(2)} km',
+              value: '${(activity.distance * 0.000621371).toStringAsFixed(2)} miles',
             ),
             const SizedBox(height: 16),
             _DetailRow(
@@ -273,7 +274,7 @@ class RunningStatsPage extends ConsumerWidget {
               icon: Icons.speed,
               label: 'Average Pace',
               value:
-                  '${(activity.duration.inSeconds / (activity.distance / 1000) / 60).toStringAsFixed(2)} min/km',
+              '${(activity.duration.inSeconds / (activity.distance * 0.621371 / 1000) / 60).toStringAsFixed(2)} min/mile',
             ),
           ],
         ),
@@ -308,9 +309,12 @@ class _StatCard extends StatelessWidget {
               children: [
                 Icon(icon, color: color),
                 const SizedBox(width: 8),
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.titleMedium,
+                Flexible(
+                  child: Text(
+                    title,
+                    style: Theme.of(context).textTheme.titleMedium,
+                    overflow: TextOverflow.ellipsis, // Add this to handle text overflow
+                  ),
                 ),
               ],
             ),
@@ -318,9 +322,9 @@ class _StatCard extends StatelessWidget {
             Text(
               value,
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: color,
-                  ),
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
             ),
           ],
         ),
@@ -371,7 +375,7 @@ class _RecentActivityCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${(activity.distance / 1000).toStringAsFixed(2)} km • ${activity.duration.toString().split('.').first}',
+                      '${(activity.distance * 0.000621371).toStringAsFixed(2)} miles • ${activity.duration.toString().split('.').first}',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ],
@@ -450,7 +454,7 @@ Map<String, double> _getWeeklyData(List<dynamic> activities) {
       final dateStr = DateFormat('MM-dd').format(activity.date);
       if (weeklyDistance.containsKey(dateStr)) {
         weeklyDistance[dateStr] =
-            (weeklyDistance[dateStr] ?? 0) + activity.distance / 1000;
+            (weeklyDistance[dateStr] ?? 0) + activity.distance * 0.000621371;
       }
     }
   }

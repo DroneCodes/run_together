@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
+import 'package:run_together/pages/widgets/pace_unit_toggle.dart';
 
 import '../providers/auth_provider.dart';
 import '../providers/running_provider.dart';
@@ -76,7 +77,7 @@ class _RunningTrackerPageState extends ConsumerState<RunningTrackerPage> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Distance: ${(_distance / 1000).toStringAsFixed(2)} km'),
+            Text('Distance: ${(_distance * 0.000621371).toStringAsFixed(2)} miles'),
             const SizedBox(height: 8),
             Text('Duration: ${_duration.toString().split('.').first}'),
           ],
@@ -102,7 +103,7 @@ class _RunningTrackerPageState extends ConsumerState<RunningTrackerPage> {
           'distance': _distance,
           'duration': _duration.inSeconds,
           'date': DateTime.now().toIso8601String(),
-          'pace': _distance > 0 ? _duration.inSeconds / (_distance / 1000) : 0,
+          'pace': _distance > 0 ? _duration.inSeconds / (_distance * 0.621371 / 1000) : 0,
         });
       }
     }
@@ -147,25 +148,25 @@ class _RunningTrackerPageState extends ConsumerState<RunningTrackerPage> {
                     children: [
                       _StatisticCard(
                         icon: Icons.straighten,
-                        value: (_distance / 1000).toStringAsFixed(2),
-                        unit: 'km',
+                        value: (_distance * 0.000621371).toStringAsFixed(2),
+                        unit: 'miles',
                         label: 'Distance',
                       ),
-                      SizedBox(width: 8), // Add some spacing
+                      const SizedBox(width: 8), // Add some spacing
                       _StatisticCard(
                         icon: Icons.timer,
                         value: _duration.toString().split('.').first,
                         unit: '',
                         label: 'Duration',
                       ),
-                      SizedBox(width: 8), // Add some spacing
+                      const SizedBox(width: 8), // Add some spacing
                       _StatisticCard(
                         icon: Icons.speed,
                         value: _distance > 0
-                            ? (_duration.inSeconds / (_distance / 1000) / 60)
+                            ? (_duration.inSeconds / (_distance * 0.621371 / 1000) / 60)
                             .toStringAsFixed(2)
                             : '0.00',
-                        unit: 'min/km',
+                        unit: 'min/mile',
                         label: 'Pace',
                       ),
                     ],
@@ -234,7 +235,7 @@ class _RunningTrackerPageState extends ConsumerState<RunningTrackerPage> {
                   itemBuilder: (context, index) {
                     final activity = activities[index];
                     final pace = activity.duration.inSeconds /
-                        (activity.distance / 1000) /
+                        (activity.distance * 0.621371 / 1000) /
                         60;
 
                     return Card(
@@ -256,28 +257,27 @@ class _RunningTrackerPageState extends ConsumerState<RunningTrackerPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const SizedBox(height: 8),
-                            Row(
-                              children: [
-                                _ActivityDetail(
-                                  icon: Icons.straighten,
-                                  value:
-                                  '${(activity.distance / 1000).toStringAsFixed(2)} km',
-                                ),
-                                const SizedBox(width: 16),
-                                _ActivityDetail(
-                                  icon: Icons.timer,
-                                  value: activity.duration
-                                      .toString()
-                                      .split('.')
-                                      .first,
-                                ),
-                                const SizedBox(width: 16),
-                                _ActivityDetail(
-                                  icon: Icons.speed,
-                                  value: '${pace.toStringAsFixed(2)} min/km',
-                                ),
-                              ],
-                            ),
+                            SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Row(
+                                children: [
+                                  _ActivityDetail(
+                                    icon: Icons.straighten,
+                                    value: '${(activity.distance * 0.000621371).toStringAsFixed(2)} miles',
+                                  ),
+                                  const SizedBox(width: 16),
+                                  _ActivityDetail(
+                                    icon: Icons.timer,
+                                    value: activity.duration.toString().split('.').first,
+                                  ),
+                                  const SizedBox(width: 16),
+                                  _ActivityDetail(
+                                    icon: Icons.speed,
+                                    value: '${pace.toStringAsFixed(2)} min/mile',
+                                  ),
+                                ],
+                              ),
+                            )
                           ],
                         ),
                       ),
