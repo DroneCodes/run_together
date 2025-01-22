@@ -19,11 +19,13 @@ class RunningTrackerPage extends ConsumerStatefulWidget {
 
 class _RunningTrackerPageState extends ConsumerState<RunningTrackerPage> {
   bool _isTracking = false;
+  bool _isPaused = false;
   Position? _lastPosition;
   double _distance = 0;
   Duration _duration = Duration.zero;
   late Stream<Position> _positionStream;
   Timer? _timer;
+  StreamSubscription<Position>? _positionSubscription;
 
   @override
   void initState() {
@@ -43,11 +45,14 @@ class _RunningTrackerPageState extends ConsumerState<RunningTrackerPage> {
   }
 
   void _startTracking() {
-    setState(() => _isTracking = true);
+    setState(() {
+      _isTracking = true;
+      _isPaused = false;
+    });
 
     _positionStream = Geolocator.getPositionStream();
-    _positionStream.listen((Position position) {
-      if (_lastPosition != null) {
+    _positionSubscription = _positionStream.listen((Position position) {
+      if (_lastPosition != null && !_isPaused) {
         final newDistance = Geolocator.distanceBetween(
           _lastPosition!.latitude,
           _lastPosition!.longitude,
@@ -60,13 +65,29 @@ class _RunningTrackerPageState extends ConsumerState<RunningTrackerPage> {
     });
 
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() => _duration += const Duration(seconds: 1));
+      if (!_isPaused) {
+        setState(() => _duration += const Duration(seconds: 1));
+      }
     });
   }
 
+  void _pauseTracking() {
+    setState(() => _isPaused = true);
+  }
+
+  void _resumeTracking() {
+    setState(() => _isPaused = false);
+  }
+
   Future<void> _stopTracking() async {
-    setState(() => _isTracking = false);
+    // Cancel all active subscriptions and timers
     _timer?.cancel();
+    _positionSubscription?.cancel();
+
+    setState(() {
+      _isTracking = false;
+      _isPaused = false;
+    });
 
     // Show confirmation dialog
     final shouldSave = await showDialog<bool>(
@@ -80,6 +101,8 @@ class _RunningTrackerPageState extends ConsumerState<RunningTrackerPage> {
             Text('Distance: ${(_distance * 0.000621371).toStringAsFixed(2)} miles'),
             const SizedBox(height: 8),
             Text('Duration: ${_duration.toString().split('.').first}'),
+            const SizedBox(height: 8),
+            Text('Average Pace: ${_distance > 0 ? (_duration.inSeconds / (_distance * 0.621371 / 1000) / 60).toStringAsFixed(2) : '0.00'} min/mile'),
           ],
         ),
         actions: [
@@ -104,16 +127,19 @@ class _RunningTrackerPageState extends ConsumerState<RunningTrackerPage> {
           'duration': _duration.inSeconds,
           'date': DateTime.now().toIso8601String(),
           'pace': _distance > 0 ? _duration.inSeconds / (_distance * 0.621371 / 1000) : 0,
+          'wasInterrupted': _isPaused,
         });
       }
     }
 
+    // Reset all tracking states
     setState(() {
       _distance = 0;
       _duration = Duration.zero;
       _lastPosition = null;
     });
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -173,19 +199,54 @@ class _RunningTrackerPageState extends ConsumerState<RunningTrackerPage> {
                   ),
                 ),
                 const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: FilledButton.icon(
-                    onPressed: _isTracking ? _stopTracking : _startTracking,
-                    icon: Icon(_isTracking ? Icons.stop : Icons.play_arrow),
-                    label: Text(_isTracking ? 'Stop Running' : 'Start Running'),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: _isTracking
-                          ? Theme.of(context).colorScheme.error
-                          : Theme.of(context).primaryColor,
-                    ),
-                  ),
+                Column(
+                  children: [
+                    if (!_isTracking)
+                      SizedBox(
+                        width: double.infinity,
+                        height: 56,
+                        child: FilledButton.icon(
+                          onPressed: _startTracking,
+                          icon: const Icon(Icons.play_arrow),
+                          label: const Text('Start Running'),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: Theme.of(context).primaryColor,
+                          ),
+                        ),
+                      )
+                    else
+                      Row(
+                        children: [
+                          Expanded(
+                            child: SizedBox(
+                              height: 56,
+                              child: FilledButton.icon(
+                                onPressed: _isPaused ? _resumeTracking : _pauseTracking,
+                                icon: Icon(_isPaused ? Icons.play_arrow : Icons.pause),
+                                label: Text(_isPaused ? 'Resume Run' : 'Pause Run'),
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: Theme.of(context).primaryColor,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: SizedBox(
+                              height: 56,
+                              child: FilledButton.icon(
+                                onPressed: _stopTracking,
+                                icon: const Icon(Icons.stop),
+                                label: const Text('Stop Run'),
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: Theme.of(context).colorScheme.error,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                  ],
                 ),
               ],
             ),
