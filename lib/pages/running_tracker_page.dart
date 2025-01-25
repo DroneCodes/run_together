@@ -50,7 +50,13 @@ class _RunningTrackerPageState extends ConsumerState<RunningTrackerPage> {
       _isPaused = false;
     });
 
-    _positionStream = Geolocator.getPositionStream();
+    _positionStream = Geolocator.getPositionStream(
+        locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.best,
+            distanceFilter: 1, // Trigger updates every 1 meter
+            timeLimit: null // Continuous updates
+        )
+    );
     _positionSubscription = _positionStream.listen((Position position) {
       if (_lastPosition != null && !_isPaused) {
         final newDistance = Geolocator.distanceBetween(
@@ -65,7 +71,7 @@ class _RunningTrackerPageState extends ConsumerState<RunningTrackerPage> {
     });
 
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!_isPaused) {
+      if (_isTracking) {
         setState(() => _duration += const Duration(seconds: 1));
       }
     });
