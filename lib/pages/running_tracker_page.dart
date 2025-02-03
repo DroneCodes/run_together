@@ -2,13 +2,16 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 import 'package:run_together/pages/widgets/pace_unit_toggle.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../providers/auth_provider.dart';
 import '../providers/running_provider.dart';
+import '../services/BackgroundTrackingService.dart';
 
 class RunningTrackerPage extends ConsumerStatefulWidget {
   const RunningTrackerPage({super.key});
@@ -31,6 +34,8 @@ class _RunningTrackerPageState extends ConsumerState<RunningTrackerPage> {
   void initState() {
     super.initState();
     _requestLocationPermission();
+    BackgroundTrackingService.initializeService();
+    _setupServiceListeners();
   }
 
   Future<void> _requestLocationPermission() async {
@@ -44,48 +49,61 @@ class _RunningTrackerPageState extends ConsumerState<RunningTrackerPage> {
     }
   }
 
-  void _startTracking() {
+  void _setupServiceListeners() {
+    final service = FlutterBackgroundService();
+    service.on('update').listen((event) {
+      if (event != null && mounted) {
+        setState(() {
+          _duration = Duration(seconds: event['duration'] as int);
+        });
+      }
+    });
+
+    service.on('updateLocation').listen((event) {
+      if (event != null && mounted) {
+        setState(() {
+          _distance = event['distance'] as double;
+        });
+      }
+    });
+  }
+
+  void _startTracking() async {
+    final service = FlutterBackgroundService();
+
+    // Reset shared preferences
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('current_distance', 0);
+    await prefs.setInt('current_duration', 0);
+    await prefs.remove('last_latitude');
+    await prefs.remove('last_longitude');
+
+    // Start service
+    await service.startService();
+
     setState(() {
       _isTracking = true;
       _isPaused = false;
-    });
-
-    _positionStream = Geolocator.getPositionStream(
-        locationSettings: const LocationSettings(
-            accuracy: LocationAccuracy.best,
-            distanceFilter: 1, // Trigger updates every 1 meter
-            timeLimit: null // Continuous updates
-        )
-    );
-    _positionSubscription = _positionStream.listen((Position position) {
-      if (_lastPosition != null && !_isPaused) {
-        final newDistance = Geolocator.distanceBetween(
-          _lastPosition!.latitude,
-          _lastPosition!.longitude,
-          position.latitude,
-          position.longitude,
-        );
-        setState(() => _distance += newDistance);
-      }
-      _lastPosition = position;
-    });
-
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_isTracking) {
-        setState(() => _duration += const Duration(seconds: 1));
-      }
+      _distance = 0;
+      _duration = Duration.zero;
     });
   }
 
-  void _pauseTracking() {
+  void _pauseTracking() async {
+    final service = FlutterBackgroundService();
+    service.invoke('setPaused', {'isPaused': true});
     setState(() => _isPaused = true);
   }
 
-  void _resumeTracking() {
+  void _resumeTracking() async {
+    final service = FlutterBackgroundService();
+    service.invoke('setPaused', {'isPaused': false});
     setState(() => _isPaused = false);
   }
 
   Future<void> _stopTracking() async {
+    final service = FlutterBackgroundService();
+    service.invoke('stopService');
     // Cancel all active subscriptions and timers
     _timer?.cancel();
     _positionSubscription?.cancel();

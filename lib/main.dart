@@ -5,11 +5,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:run_together/pages/auth/login_page.dart';
 import 'package:run_together/pages/home_page.dart';
 import 'package:run_together/providers/auth_provider.dart';
+import 'package:run_together/services/BackgroundTrackingService.dart';
 
 import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await BackgroundTrackingService.initializeService();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
